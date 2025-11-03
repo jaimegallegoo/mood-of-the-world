@@ -205,3 +205,21 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# --- Mood of the World custom additions ---
+# Local data and generated figures
+data/
+figures/
+
+# Paper drafts and temporary exports
+paper/
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Spotify credentials (keep private!)
+.env
+
+# Virtual environment (if named differently)
+env/
+venv/
