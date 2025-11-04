@@ -6,13 +6,36 @@ import re
 
 
 def norm_text(s: str) -> str:
-    """Normaliza texto: minúsculas, sin acentos, sin 'feat', sin signos, espacios compactos."""
+    """
+    Normaliza texto para emparejar títulos/artistas entre ediciones:
+    - minúsculas, sin acentos
+    - quita (feat ...) y otros paréntesis típicos (remastered, live, acoustic, radio edit, version, mono/stereo, sped up/slowed)
+    - elimina sufijos tras '-' con esos mismos tags
+    - normaliza conectores/artistas (' x ', ' & ', ' and ', ' con ', ' with ') a espacio
+    - deja solo [a-z0-9 ] y compacta espacios
+    """
+    import unicodedata, re
     s = "" if s is None else str(s)
     s = s.lower()
     s = "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
+
+    # quitar (feat ...) explícito
     s = re.sub(r"\s*\(feat\.?[^)]*\)", "", s)
     s = re.sub(r"\s*feat\.?.*$", "", s)
+
+    # quitar otros paréntesis con tags comunes
+    s = re.sub(r"\s*[\(\[][^)\]]*(remaster|remixed?|radio edit|acoustic|live|version|mono|stereo|sped up|slowed)[^)\]]*[\)\]]", "", s)
+
+    # quitar sufijos tipo "- remix", "- remastered 2017", "- radio edit", "- acoustic", "- live", "- version", "- mono/stereo", "- sped up/slowed"
+    s = re.sub(r"\s*-\s*(remaster(?:ed)?(?: \d{4})?|remix(?:ed)?|radio edit|acoustic|live|version|single version|mono|stereo|sped up|slowed).*$", "", s)
+
+    # normalizar conectores frecuentes entre artistas/títulos
+    s = re.sub(r"\s+(x|&|and|con|with)\s+", " ", s)
+
+    # quedarse solo con alfanumérico y espacios
     s = re.sub(r"[^a-z0-9 ]+", "", s)
+
+    # compactar espacios
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
