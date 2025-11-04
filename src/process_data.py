@@ -1,20 +1,18 @@
 import argparse
 import pandas as pd
+import numpy as np
 import unicodedata
 import re
 
 
 def norm_text(s: str) -> str:
+    """Normaliza texto: minúsculas, sin acentos, sin 'feat', sin signos, espacios compactos."""
     s = "" if s is None else str(s)
     s = s.lower()
-    # quitar acentos
     s = "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
-    # eliminar "feat. ..." y paréntesis con feats
     s = re.sub(r"\s*\(feat\.?[^)]*\)", "", s)
     s = re.sub(r"\s*feat\.?.*$", "", s)
-    # solo letras/numeros/espacios
     s = re.sub(r"[^a-z0-9 ]+", "", s)
-    # espacios compactados
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
@@ -39,13 +37,14 @@ def merge_and_compute_mood(metadata_path: str, features_path: str) -> pd.DataFra
     matched_ids = set(merged_id["track_id"]) if not merged_id.empty and "track_id" in merged_id.columns else set()
     meta_unmatched = meta[~meta["track_id"].isin(matched_ids)] if "track_id" in meta.columns else meta.copy()
 
+    # Normalizados en no-emparejados y en feats
     for df in (meta_unmatched, feats):
         if "track_name" in df.columns and "artist_name" in df.columns:
             df["t_norm"] = df["track_name"].map(norm_text)
             df["a_norm"] = df["artist_name"].map(norm_text)
 
     merged_name = pd.DataFrame()
-    if {"t_norm", "a_norm"}.issubset(set(meta_unmatched.columns)) and {"t_norm", "a_norm"}.issubset(set(feats.columns)):
+    if {"t_norm", "a_norm"}.issubset(meta_unmatched.columns) and {"t_norm", "a_norm"}.issubset(feats.columns):
         merged_name = pd.merge(
             meta_unmatched,
             feats,
@@ -55,26 +54,45 @@ def merge_and_compute_mood(metadata_path: str, features_path: str) -> pd.DataFra
         )
         print(f"🧩 Name-merge matches: {len(merged_name)}")
 
-    # ---------- 3) Unir resultados y calcular MoodIndex ----------
+    # ---------- 3) Unir resultados ----------
     merged = pd.concat([merged_id, merged_name], ignore_index=True, sort=False).drop_duplicates()
     if merged.empty:
         print("⚠️ No matching tracks found after ID + name merges.")
         return merged
 
-    for col in ["valence", "energy"]:
-        if col not in merged.columns:
-            merged[col] = pd.NA
+    # ---------- 4) Calcular Mood Index ----------
+    # Asegurar numéricos
+    for col in ["valence", "energy", "danceability", "tempo"]:
+        if col in merged.columns:
+            merged[col] = pd.to_numeric(merged[col], errors="coerce")
 
-    merged["valence"] = merged["valence"].astype(float)
-    merged["energy"]  = merged["energy"].astype(float)
     merged["mood_index"] = (merged["valence"] + merged["energy"]) / 2
 
+    # ---------- 5) Ponderación por Streams del chart (si existe) ----------
+    if "streams_chart" in merged.columns:
+        merged["streams_chart"] = pd.to_numeric(merged["streams_chart"], errors="coerce")
+        # Métricas de resumen (con streams)
+        valid = merged["mood_index"].notna() & merged["streams_chart"].notna() & (merged["streams_chart"] > 0)
+        if valid.any():
+            w = merged.loc[valid, "streams_chart"].values
+            x = merged.loc[valid, "mood_index"].values
+            w_mean_streams = (x * w).sum() / w.sum()
+            mean_simple = merged["mood_index"].mean()
+            print(f"📊 MoodIndex mean (simple): {mean_simple:.3f}")
+            print(f"📊 MoodIndex mean (weighted by streams): {w_mean_streams:.3f}")
+        else:
+            print("ℹ️ 'streams_chart' presente pero sin valores válidos para ponderar.")
+    else:
+        print("ℹ️ 'streams_chart' no presente en el metadata. Solo se calcula media simple.")
+
+    # ---------- 6) Selección de columnas limpias ----------
     pick = [
         "track_name_meta" if "track_name_meta" in merged.columns else "track_name",
         "artist_name_meta" if "artist_name_meta" in merged.columns else "artist_name",
         "country", "date",
         "valence", "energy", "danceability", "tempo",
-        "mood_index", "track_popularity", "artist_popularity", "artist_genres"
+        "mood_index", "track_popularity", "artist_popularity", "artist_genres",
+        "streams_chart",  # si no existe, se ignorará más abajo
     ]
     keep_cols = [c for c in pick if c in merged.columns]
     merged = merged[keep_cols].rename(columns={
@@ -87,7 +105,9 @@ def merge_and_compute_mood(metadata_path: str, features_path: str) -> pd.DataFra
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Merge Spotify metadata with audio features (ID + name fallback) and compute Mood Index.")
+    ap = argparse.ArgumentParser(
+        description="Merge Spotify metadata with audio features (ID + name fallback), compute Mood Index, and show streams-weighted mean if available."
+    )
     ap.add_argument("--meta", required=True, help="Path to metadata CSV (from fetch_metadata.py)")
     ap.add_argument("--features", required=True, help="Path to audio features CSV (from load_public_data.py)")
     ap.add_argument("--out", required=True, help="Output CSV file path")

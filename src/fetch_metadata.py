@@ -67,6 +67,11 @@ def enrich_with_metadata(sp: Spotify, chart_df: pd.DataFrame, country: str, date
     chart_df.columns = [c.strip().lower() for c in chart_df.columns]
     rows: list[dict] = []
 
+    # columnas extra que queremos arrastrar desde el chart (de momento, streams del día)
+    extra_cols = []
+    if "streams_chart" in chart_df.columns:
+        extra_cols.append("streams_chart")
+
     has_id = "track_id" in chart_df.columns
 
     for _, row in tqdm(chart_df.iterrows(), total=len(chart_df), desc="Fetching metadata"):
@@ -78,12 +83,18 @@ def enrich_with_metadata(sp: Spotify, chart_df: pd.DataFrame, country: str, date
             meta = build_metadata_row_by_search(sp, track_name, artist_name, country, date)
 
         if meta is not None:
+            # copiar columnas extra desde el chart a la salida
+            for c in extra_cols:
+                val = row.get(c)
+                # si hay NaN, lo dejamos como None para no romper tipos
+                meta[c] = None if pd.isna(val) else val
             rows.append(meta)
 
         # pequeñísima pausa para evitar 429 (rate limit)
         time.sleep(0.15)
 
     return pd.DataFrame(rows) if rows else pd.DataFrame()
+
 
 
 def main():
