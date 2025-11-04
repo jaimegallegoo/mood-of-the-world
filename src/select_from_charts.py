@@ -37,16 +37,17 @@ def pick_sample(df: pd.DataFrame, country: str, date: str, top_n: int) -> pd.Dat
     # Ordena por posición y toma Top-N con columnas limpias
     out = (
         df.sort_values(col_pos)
-          .head(top_n)
-          .loc[:, [col_track, col_artist, "track_id", col_date, col_region]]
-          .rename(columns={
-              col_track: "track_name",
-              col_artist: "artist_name",
-              col_date: "date",
-              col_region: "country"
-          })
-          .dropna(subset=["track_id"])
-          .reset_index(drop=True)
+        .head(top_n)
+        .loc[:, [col_track, col_artist, "track_id", col_date, col_region, "streams"]]
+        .rename(columns={
+            col_track: "track_name",
+            col_artist: "artist_name",
+            col_date: "date",
+            col_region: "country",
+            "streams": "streams_chart"
+        })
+        .dropna(subset=["track_id"])
+        .reset_index(drop=True)
     )
     return out
 
