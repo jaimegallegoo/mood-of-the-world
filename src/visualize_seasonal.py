@@ -50,7 +50,7 @@ def main():
     out_path = os.path.join(args.outdir, "seasonal_comparison.png")
     plt.tight_layout()
     plt.savefig(out_path, dpi=300)
-    print(f"✅ Saved seasonal chart: {out_path}")
+    print(f"✅ Saved English seasonal chart: {out_path}")
 
 if __name__ == "__main__":
     main()
