@@ -20,6 +20,7 @@ mood-of-the-world/
 │   ├── interim/    # API metadata (fetched per country)
 │   └── processed/  # Final merged datasets + country_summary.csv
 ├── figures/        # Generated charts and maps
+├── paper/          # Research paper (PDF)
 ├── src/            # Python scripts
 ├── requirements.txt
 └── README.md
@@ -160,6 +161,23 @@ All figures are saved in the `figures/` directory.
 - **Hybrid Approach**: Due to Spotify API restrictions on audio-features (403 Forbidden), we fetch metadata via API but retrieve valence/energy from a public dataset using robust name matching.
 
 - **Metrics**: The `w_mean_streams` metric weights the Mood Index by the number of streams in the daily chart, offering a more realistic representation of what people are actually listening to.
+
+---
+
+## Citation
+
+If you use this code or data in your research, please cite:
+
+```bibtex
+@article{gallego2025mood,
+  title={Mood of the World: Analyzing Global Emotional Patterns in Music Through Spotify Data},
+  author={Gallego, James},
+  year={2025},
+  note={Available at: https://github.com/jgallegowatts/mood-of-the-world}
+}
+```
+
+The full paper is available in the [`paper/`](paper/) directory.
 
 ---
 

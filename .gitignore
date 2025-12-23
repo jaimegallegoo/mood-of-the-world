@@ -225,8 +225,9 @@ data/external/*
 figures/*
 !figures/.gitkeep
 
-# Paper drafts and temporary exports
-paper/
+# Paper (include final PDF, exclude drafts)
+paper/*
+!paper/*.pdf
 
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
