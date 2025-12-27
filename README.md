@@ -164,19 +164,6 @@ All figures are saved in the `figures/` directory.
 
 ---
 
-## Citation
-
-If you use this code or data in your research, please cite:
-
-```bibtex
-@article{gallego2025mood,
-  title={Mood of the World: Analyzing Global Emotional Patterns in Music Through Spotify Data},
-  author={Gallego, James},
-  year={2025},
-  note={Available at: https://github.com/jgallegowatts/mood-of-the-world}
-}
-```
-
 The full paper is available in the [`paper/`](paper/) directory.
 
 ---
